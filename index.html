@@ -1,0 +1,1963 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Bienestar Diario</title>
+
+  <!-- Supabase JS v2 -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <!-- XLSX Export -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+
+  <style>
+    :root{
+      --bg1:#F7F8FC;
+      --bg2:#FFFFFF;
+      --card:#FFFFFFCC;
+      --border:#E6EAF7;
+      --text:#0f172a;
+      --muted:#64748b;
+      --primary:#6C8CFF;
+      --primary2:#E9F0FF;
+
+      --okBg:#ECFDF5;  --okBr:#D1FAE5;  --okTx:#065F46;
+      --warnBg:#FFF7ED;--warnBr:#FFEDD5;--warnTx:#9A3412;
+      --badBg:#FEF2F2; --badBr:#FEE2E2; --badTx:#991B1B;
+
+      --pillBg:#EEF2FF; --pillTx:#3730A3;
+      --shadow: 0 10px 25px rgba(15, 23, 42, 0.06);
+      --radius: 18px;
+    }
+    *{box-sizing:border-box;}
+    body{
+      margin:0;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial;
+      color:var(--text);
+      background: linear-gradient(180deg, var(--bg1) 0%, var(--bg2) 70%);
+    }
+    .wrap{ max-width: 980px; margin: 24px auto; padding: 0 16px 40px; }
+    .topbar{ display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:16px; }
+    .brand{ display:flex; flex-direction:column; gap:2px; }
+    .brand h1{ margin:0; font-size:26px; letter-spacing:-0.02em; }
+    .brand p{ margin:0; color:var(--muted); font-size:13px; }
+    .pills{ display:flex; gap:8px; flex-wrap:wrap; justify-content:flex-end; align-items:center; }
+    .pill{
+      padding:6px 10px; border-radius:999px;
+      background:var(--pillBg); color:var(--pillTx);
+      font-size:12px; font-weight:800;
+    }
+    .pill.cloud{ background:#E6FFFB; color:#0F766E; border:1px solid #CCFBF1; }
+    .pill.cloud.bad{ background:#FEF2F2; color:#991B1B; border:1px solid #FEE2E2; }
+
+    .tabs{ display:flex; gap:10px; flex-wrap:wrap; margin: 14px 0 18px; }
+    .tabbtn{
+      border:1px solid var(--border);
+      background: linear-gradient(180deg, var(--primary2) 0%, #F4F7FF 100%);
+      border-radius: 999px;
+      padding: 10px 14px;
+      font-weight:900;
+      cursor:pointer;
+      color:#1e293b;
+      transition: transform .06s ease;
+      user-select:none;
+    }
+    .tabbtn:active{ transform: scale(0.98); }
+    .tabbtn.active{ outline: 2px solid rgba(108, 140, 255, 0.35); }
+
+    .grid{ display:grid; grid-template-columns: 1.2fr 0.8fr; gap:14px; }
+    @media (max-width: 860px){ .grid{ grid-template-columns: 1fr; } }
+
+    .card{
+      background: var(--card);
+      border:1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 16px;
+    }
+    .card h2{ margin: 0 0 10px; font-size:18px; letter-spacing:-0.01em; }
+    .card .sub{ margin-top:-4px; color:var(--muted); font-size:13px; margin-bottom: 12px; }
+
+    label{ display:block; font-size:13px; color:var(--muted); margin-bottom:6px; font-weight:800; }
+    input[type="date"], input[type="number"], input[type="text"], textarea, select{
+      width:100%;
+      border:1px solid var(--border);
+      border-radius: 14px;
+      padding: 10px 12px;
+      outline:none;
+      font-size:14px;
+      background:#fff;
+    }
+    input[type="range"]{ width:100%; }
+    textarea{ min-height: 90px; resize: vertical; }
+
+    .row{ display:flex; gap:12px; }
+    .row > div{ flex:1; }
+
+    .checkline{
+      display:flex; align-items:center; justify-content:space-between;
+      gap:10px; padding: 10px 12px;
+      border:1px solid var(--border);
+      border-radius: 14px;
+      background:#fff; margin-bottom:10px;
+    }
+    .checkline span{ font-weight:900; font-size:14px; color:#1e293b; }
+    .checkline small{ display:block; font-weight:700; color:var(--muted); font-size:12px; margin-top:2px; }
+    .checkline input[type="checkbox"]{ width: 20px; height: 20px; accent-color: var(--primary); }
+
+    .btnrow{ display:flex; gap:10px; margin-top: 8px; flex-wrap:wrap; }
+    .btn{
+      flex:1; min-width: 170px;
+      border:1px solid var(--border);
+      background: linear-gradient(180deg, var(--primary2) 0%, #F4F7FF 100%);
+      border-radius: 16px;
+      padding: 12px 12px;
+      font-weight:900;
+      cursor:pointer;
+      transition: transform .06s ease;
+    }
+    .btn:active{ transform: scale(0.98); }
+    .btn.secondary{ background:#fff; font-weight:900; }
+
+    .alert{ border-radius: 14px; padding: 10px 12px; font-weight:900; font-size:13px; margin-top: 10px; }
+    .ok{ background:var(--okBg); border:1px solid var(--okBr); color:var(--okTx); }
+    .warn{ background:var(--warnBg); border:1px solid var(--warnBr); color:var(--warnTx); }
+    .bad{ background:var(--badBg); border:1px solid var(--badBr); color:var(--badTx); }
+    .mini{ color:var(--muted); font-size:12px; margin-top: 8px; }
+    .divider{ height:1px; background: var(--border); margin: 14px 0; }
+    .foodsBox{ border:1px dashed var(--border); border-radius: 14px; padding: 10px; background:#fff; }
+
+    .list{ display:flex; flex-direction:column; gap:10px; }
+    .mealItem{ border:1px solid var(--border); border-radius: 16px; padding: 12px; background:#fff; }
+    .mealHead{ display:flex; align-items:baseline; justify-content:space-between; gap:10px; }
+    .mealHead strong{ font-size:14px; }
+    .mealHead em{ color:var(--muted); font-size:12px; }
+    .mealMeta{ margin-top:6px; color:var(--muted); font-size:12px; font-weight:800; }
+    .mealFoods{ margin-top:8px; font-size:13px; }
+    .mealFoods ul{ margin:8px 0 0; padding-left: 18px; }
+    .mealNote{ margin-top:8px; font-size:13px; color:#334155; }
+    .tinybtn{
+      margin-top:10px; width:100%;
+      border-radius: 14px; border:1px solid var(--border);
+      background:#fff; padding:10px; font-weight:900; cursor:pointer;
+    }
+
+    .table{
+      width:100%;
+      border-collapse: collapse;
+      overflow:hidden;
+      border-radius: 14px;
+      border:1px solid var(--border);
+      background:#fff;
+    }
+    .table th, .table td{
+      padding:10px; border-bottom:1px solid var(--border);
+      font-size:13px; text-align:left; vertical-align: top; white-space:nowrap;
+    }
+    .table th{ color:#334155; background:#F8FAFF; font-weight:900; }
+    .hidden{ display:none; }
+
+    .pctBox{
+      display:flex; align-items:center; gap:10px;
+      padding:10px 12px; border:1px solid var(--border);
+      border-radius: 14px; background:#fff;
+    }
+    .pctValue{
+      min-width: 60px; text-align:center; font-weight:900;
+      border:1px solid var(--border); border-radius: 12px;
+      padding: 8px 10px; background: #fff;
+    }
+    .smallhint{
+      display:flex; gap:10px; align-items:center; justify-content:space-between;
+      margin-top:10px; padding:10px 12px;
+      border:1px solid var(--border); border-radius:14px; background:#fff;
+      color:var(--muted); font-size:12px; font-weight:800;
+    }
+    .toggle{
+      display:flex; align-items:center; gap:10px;
+    }
+    .toggle input{ width:18px; height:18px; accent-color: var(--primary); }
+
+    /* Plate usage bar */
+    .plateBar{
+      display:flex; height:14px; border-radius:10px;
+      background:#F1F5F9; border:1px solid var(--border);
+      overflow:hidden; margin-top:8px;
+    }
+    .plateUsed{
+      background: linear-gradient(90deg, #6C8CFF, #818CF8);
+      transition: width .2s ease;
+      border-radius:10px 0 0 10px;
+    }
+    .plateAdding{
+      background: linear-gradient(90deg, #A5F3FC, #67E8F9);
+      transition: width .2s ease;
+    }
+    .plateWarning{ color:#DC2626; font-weight:900; }
+
+    /* Report dashboard */
+    .dashGrid{
+      display:grid; grid-template-columns: 1fr 1fr; gap:14px; margin-top:14px;
+    }
+    @media (max-width:700px){ .dashGrid{ grid-template-columns:1fr; } }
+    .dashCard{
+      background:#fff; border:1px solid var(--border);
+      border-radius:var(--radius); padding:14px; box-shadow: var(--shadow);
+    }
+    .dashCard h3{ margin:0 0 8px; font-size:15px; letter-spacing:-0.01em; }
+    .dashCard .dashStat{
+      font-size:28px; font-weight:900; color:var(--primary);
+      margin:4px 0;
+    }
+    .dashCard .dashSub{
+      font-size:12px; color:var(--muted); font-weight:700;
+    }
+    .dashWide{ grid-column: 1 / -1; }
+    .statRow{
+      display:flex; gap:14px; flex-wrap:wrap; margin-top:14px;
+    }
+    .statBox{
+      flex:1; min-width:120px;
+      background:#fff; border:1px solid var(--border);
+      border-radius:var(--radius); padding:14px;
+      text-align:center; box-shadow:var(--shadow);
+    }
+    .statBox .statNum{
+      font-size:24px; font-weight:900; color:var(--primary);
+    }
+    .statBox .statLabel{
+      font-size:12px; color:var(--muted); font-weight:700; margin-top:4px;
+    }
+  </style>
+</head>
+
+<body>
+<div class="wrap">
+
+  <div class="topbar">
+    <div class="brand">
+      <h1>🌿 Bienestar Diario</h1>
+      <p>Minimal · Pastel · Nutri-friendly · Supabase Cloud</p>
+    </div>
+    <div class="pills">
+      <span class="pill">Hábitos</span>
+      <span class="pill">Comidas</span>
+      <span class="pill">Reportes</span>
+      <span class="pill">Excel</span>
+      <span id="cloudStatus" class="pill cloud bad">Cloud: conectando…</span>
+    </div>
+  </div>
+
+  <div class="tabs">
+    <div class="tabbtn active" data-tab="habits">✅ Hábitos</div>
+    <div class="tabbtn" data-tab="meals">🍽️ Comidas</div>
+    <div class="tabbtn" data-tab="reports">📑 Reportes</div>
+  </div>
+
+  <!-- TAB: HABITS -->
+  <div id="tab-habits">
+    <div class="grid">
+      <div class="card">
+        <h2>✅ Checklist del día</h2>
+        <div class="sub">Registrá rápido, guardá, y queda en la nube (Supabase).</div>
+
+        <div class="smallhint">
+          <div class="toggle">
+            <input type="checkbox" id="useCloud" checked />
+            <span>Guardar en Cloud (Supabase)</span>
+          </div>
+          <span id="cloudHint">—</span>
+        </div>
+
+        <label style="margin-top:10px;">📅 Fecha</label>
+        <input type="date" id="h_date"/>
+
+        <div class="divider"></div>
+
+        <div class="checkline">
+          <div>
+            <span>🛌 Dormir antes de las 00:00</span>
+            <small>Meta: mínimo 3 veces por semana</small>
+          </div>
+          <input type="checkbox" id="h_sleep"/>
+        </div>
+
+        <div class="checkline">
+          <div>
+            <span>⏳ Ayuno intermitente</span>
+            <small>Check simple</small>
+          </div>
+          <input type="checkbox" id="h_fasting"/>
+        </div>
+
+        <div class="checkline">
+          <div>
+            <span>🌞 Exposición al sol</span>
+            <small>Meta: 10–15 minutos</small>
+          </div>
+          <input type="checkbox" id="h_sun"/>
+        </div>
+
+        <div class="checkline">
+          <div>
+            <span>😴 Siesta</span>
+            <small>Límite: máximo 3 por semana</small>
+          </div>
+          <input type="checkbox" id="h_nap"/>
+        </div>
+
+        <div class="checkline">
+          <div>
+            <span>🍽️ Registro de comidas completado</span>
+            <small>Lo podés marcar desde “Comidas”</small>
+          </div>
+          <input type="checkbox" id="h_mealsLogged"/>
+        </div>
+
+        <div class="divider"></div>
+
+        <label>💧 Agua (litros) — meta 2.0</label>
+        <input type="number" id="h_water" min="0" max="6" step="0.1" />
+
+        <label style="margin-top:10px;">📱 Uso de celular (horas) — rojo si &gt; 4</label>
+        <input type="number" id="h_phone" min="0" max="24" step="0.5" />
+
+        <div class="divider"></div>
+
+        <label>🧠 Puntajes del día (1–5)</label>
+        <div class="row">
+          <div>
+            <label>Estado de ánimo</label>
+            <input type="number" id="h_mood" min="1" max="5" step="1" value="3"/>
+          </div>
+          <div>
+            <label>Cansancio</label>
+            <input type="number" id="h_fatigue" min="1" max="5" step="1" value="3"/>
+          </div>
+        </div>
+
+        <div class="row" style="margin-top:10px;">
+          <div>
+            <label>Estrés</label>
+            <input type="number" id="h_stress" min="1" max="5" step="1" value="3"/>
+          </div>
+          <div>
+            <label>Calidad de sueño</label>
+            <input type="number" id="h_sleepq" min="1" max="5" step="1" value="3"/>
+          </div>
+        </div>
+
+        <div class="btnrow">
+          <button class="btn" id="btnSaveHabits">💾 Guardar</button>
+          <button class="btn secondary" id="btnLoadHabits">↩️ Cargar</button>
+        </div>
+
+        <div id="habitsAlert" class="alert ok hidden"></div>
+        <div class="mini">La semana cuenta <b>Lunes → Domingo</b>.</div>
+      </div>
+
+      <div class="card">
+        <h2>📊 Rendimiento semanal</h2>
+        <div class="sub">Cumplimiento + contadores + bienestar.</div>
+
+        <div class="row">
+          <div>
+            <div class="mealMeta"><b>🛌 Antes de 00:00</b></div>
+            <div id="wkSleep" class="alert warn">0 / 3</div>
+          </div>
+          <div>
+            <div class="mealMeta"><b>😴 Siestas</b></div>
+            <div id="wkNap" class="alert ok">0 / 3</div>
+          </div>
+        </div>
+
+        <div class="divider"></div>
+        <canvas id="habitsChart" height="220"></canvas>
+
+        <div class="divider"></div>
+        <div class="mealMeta"><b>🧠 Promedio semanal (1–5)</b></div>
+        <canvas id="wellbeingChart" height="180"></canvas>
+
+        <div class="mini" id="wkRangeText">Semana: -</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB: MEALS -->
+  <div id="tab-meals" class="hidden">
+    <div class="grid">
+      <div class="card">
+        <h2>🍽️ Registro de comidas</h2>
+        <div class="sub">Alimentos estandarizados + porcentaje del plato + aclaración opcional.</div>
+
+        <label>📅 Fecha</label>
+        <input type="date" id="m_date"/>
+
+        <div class="divider"></div>
+
+        <label>Tipo de comida</label>
+        <select id="m_type">
+          <option>Desayuno</option>
+          <option>Almuerzo</option>
+          <option>Merienda</option>
+          <option>Cena</option>
+          <option>Snack</option>
+          <option>Otro</option>
+        </select>
+
+        <div class="row" style="margin-top:10px;">
+          <div>
+            <label>Hambre antes (1–10)</label>
+            <input type="number" id="m_hungerBefore" min="1" max="10" step="1" value="5"/>
+          </div>
+          <div>
+            <label>Saciedad después (1–10)</label>
+            <input type="number" id="m_hungerAfter" min="1" max="10" step="1" value="7"/>
+          </div>
+        </div>
+
+        <label style="margin-top:10px;">📝 Nota libre (opcional)</label>
+        <textarea id="m_note" placeholder="Ej: entrené antes / ansiedad / comí rápido / me dio hambre temprano..."></textarea>
+
+        <div class="divider"></div>
+
+        <label>🧩 Alimentos estandarizados</label>
+        <div class="foodsBox">
+          <div class="row">
+            <div>
+              <label>Elegí alimento</label>
+              <select id="m_foodSelect"></select>
+            </div>
+            <div>
+              <label>Categoría</label>
+              <input type="text" id="m_foodCat" disabled />
+            </div>
+          </div>
+
+          <div style="margin-top:10px;">
+            <label>📌 Porcentaje del plato (<span id="m_remainingLabel">100% disponible</span>)</label>
+            <div class="pctBox">
+              <input type="range" id="m_percent" min="0" max="100" step="5" value="30"/>
+              <div class="pctValue" id="m_percentValue">30%</div>
+            </div>
+            <div class="plateBar" id="plateBar">
+              <div class="plateUsed" id="plateUsed" style="width:0%"></div>
+              <div class="plateAdding" id="plateAdding" style="width:30%"></div>
+            </div>
+            <div class="mini" id="plateHint">Ej: Vegetales 50% · Proteína 30% · Carbo 20%</div>
+          </div>
+
+          <div style="margin-top:10px;">
+            <label>✍️ Aclaración opcional</label>
+            <input type="text" id="m_detail" placeholder="Ej: 2 fetas / chico / grande / queso arriba / salsa..." />
+          </div>
+
+          <div class="btnrow" style="margin-top:10px;">
+            <button class="btn secondary" id="btnAddFoodToMeal">➕ Agregar alimento</button>
+            <button class="btn" id="btnClearMealFoods">🧼 Limpiar lista</button>
+          </div>
+
+          <div class="divider"></div>
+          <div class="mealMeta"><b>Lista de alimentos en esta comida</b></div>
+          <div id="mealFoodsList" class="mealFoods"></div>
+        </div>
+
+        <div class="divider"></div>
+
+        <div class="btnrow">
+          <button class="btn" id="btnSaveMeal">✅ Guardar comida</button>
+          <button class="btn secondary" id="btnMarkMealsLogged">📌 Marcar “Comidas registradas”</button>
+        </div>
+
+        <div id="mealsAlert" class="alert ok hidden"></div>
+
+        <div class="divider"></div>
+
+        <details>
+          <summary style="cursor:pointer; font-weight:900;">➕ Agregar alimento al catálogo</summary>
+          <div style="margin-top:10px;">
+            <label>Nombre</label>
+            <input type="text" id="lib_name" placeholder="Ej: Yogur griego"/>
+
+            <label style="margin-top:10px;">Categoría</label>
+            <select id="lib_cat">
+              <option>Proteína</option>
+              <option>Carbohidrato</option>
+              <option>Vegetales</option>
+              <option>Grasas</option>
+              <option>Bebidas</option>
+              <option>Extra</option>
+            </select>
+
+            <div class="btnrow" style="margin-top:10px;">
+              <button class="btn" id="btnAddToLibrary">✅ Agregar al catálogo</button>
+            </div>
+          </div>
+        </details>
+
+        <div class="mini">Los % hacen el reporte perfecto para tu nutri ✅</div>
+      </div>
+
+      <div class="card">
+        <h2>📜 Comidas del día</h2>
+        <div class="sub">Ver, revisar y borrar si querés.</div>
+        <div id="mealsDayList" class="list"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB: REPORTS -->
+  <div id="tab-reports" class="hidden">
+    <div class="card">
+      <h2>📑 Reportes (para tu nutricionista)</h2>
+      <div class="sub">Dashboard interactivo + export prolijo A–E: Fecha, Comida, Alimento, Categoría, %.</div>
+
+      <div class="row">
+        <div>
+          <label>Desde</label>
+          <input type="date" id="r_start"/>
+        </div>
+        <div>
+          <label>Hasta</label>
+          <input type="date" id="r_end"/>
+        </div>
+      </div>
+
+      <div class="btnrow" style="margin-top:10px;">
+        <button class="btn" id="btnBuildReport">📊 Construir reporte</button>
+        <button class="btn secondary" id="btnExportCSV">📥 Export CSV</button>
+        <button class="btn secondary" id="btnExportXLSX">📥 Export Excel</button>
+      </div>
+
+      <div class="btnrow" style="margin-top:10px;">
+        <button class="btn secondary" id="btnExportJSON">🧾 Export JSON (backup)</button>
+        <label class="btn secondary" style="display:flex;align-items:center;justify-content:center;gap:10px;cursor:pointer;">
+          📤 Import JSON
+          <input type="file" id="importJSON" accept=".json" style="display:none;"/>
+        </label>
+      </div>
+
+      <div id="reportsAlert" class="alert ok hidden"></div>
+
+      <div class="divider"></div>
+
+      <!-- DASHBOARD STATS -->
+      <div class="mealMeta"><b>📊 Dashboard</b></div>
+      <div class="statRow" id="reportStats"></div>
+
+      <div class="divider"></div>
+
+      <!-- INTERACTIVE CHARTS -->
+      <div class="dashGrid" id="reportDashGrid">
+        <div class="dashCard">
+          <h3>🥧 Distribución por categoría</h3>
+          <canvas id="chartCatPie" height="250"></canvas>
+        </div>
+        <div class="dashCard">
+          <h3>📊 Registros por categoría</h3>
+          <canvas id="chartCatBar" height="250"></canvas>
+        </div>
+        <div class="dashCard">
+          <h3>📅 Comidas por día</h3>
+          <canvas id="chartDailyMeals" height="250"></canvas>
+        </div>
+        <div class="dashCard">
+          <h3>🍽️ % promedio por categoría</h3>
+          <canvas id="chartAvgPercent" height="250"></canvas>
+        </div>
+        <div class="dashCard dashWide">
+          <h3>📈 Evolución diaria del % del plato por categoría</h3>
+          <canvas id="chartDailyStack" height="280"></canvas>
+        </div>
+      </div>
+
+      <div class="divider"></div>
+
+      <div class="mealMeta"><b>Tabla detalle (A–E)</b></div>
+      <div style="overflow:auto;">
+        <table class="table" id="reportTable">
+          <thead>
+            <tr>
+              <th>Fecha (A)</th>
+              <th>Comida (B)</th>
+              <th>Alimento (C)</th>
+              <th>Categoría (D)</th>
+              <th>% (E)</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+
+      <div class="divider"></div>
+      <div class="mealMeta"><b>Resumen por categoría</b></div>
+      <div id="catSummary"></div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+(() => {
+  // -----------------------------
+  // SUPABASE CONFIG
+  // -----------------------------
+  const HARDCODE_URL  = "https://qvrxsnzakztfcabibmnq.supabase.co";
+  const HARDCODE_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF2cnhzbnpha3p0ZmNhYmlibW5xIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjkyNDg5NzgsImV4cCI6MjA4NDgyNDk3OH0.V3KcN_3BTFECdmTS5d2sWgmcN-1iYyhGVDf3GdX17jY";
+
+  const cloudStatus = document.getElementById("cloudStatus");
+  const cloudHint = document.getElementById("cloudHint");
+  const useCloud = document.getElementById("useCloud");
+
+  const LS_KEY = "wellness_data_cloud_v1";
+  const LS_USE_CLOUD = "wellness_use_cloud_v1";
+
+  // -----------------------------
+  // DEFAULT LIBRARY
+  // -----------------------------
+  const defaultLibrary = [
+    {name:"Huevo", category:"Proteína"},
+    {name:"Pollo", category:"Proteína"},
+    {name:"Carne", category:"Proteína"},
+    {name:"Atún", category:"Proteína"},
+    {name:"Pescado", category:"Proteína"},
+    {name:"Yogur", category:"Proteína"},
+    {name:"Queso", category:"Proteína"},
+    {name:"Arroz", category:"Carbohidrato"},
+    {name:"Pasta", category:"Carbohidrato"},
+    {name:"Papa", category:"Carbohidrato"},
+    {name:"Pan", category:"Carbohidrato"},
+    {name:"Avena", category:"Carbohidrato"},
+    {name:"Fruta", category:"Carbohidrato"},
+    {name:"Verduras", category:"Vegetales"},
+    {name:"Ensalada", category:"Vegetales"},
+    {name:"Aceite de oliva", category:"Grasas"},
+    {name:"Palta", category:"Grasas"},
+    {name:"Frutos secos", category:"Grasas"},
+    {name:"Agua", category:"Bebidas"},
+    {name:"Café", category:"Bebidas"},
+    {name:"Té", category:"Bebidas"},
+    {name:"Chocolate", category:"Extra"},
+    {name:"Galletitas", category:"Extra"},
+    {name:"Alcohol", category:"Extra"},
+  ];
+
+  // -----------------------------
+  // LOCAL STORE (fallback)
+  // -----------------------------
+  function loadLocal(){
+    const raw = localStorage.getItem(LS_KEY);
+    if(!raw){
+      const seed = { habits:{}, meals:{}, library: defaultLibrary };
+      localStorage.setItem(LS_KEY, JSON.stringify(seed));
+      return seed;
+    }
+    try{
+      const parsed = JSON.parse(raw);
+      if(!parsed.habits) parsed.habits = {};
+      if(!parsed.meals) parsed.meals = {};
+      if(!parsed.library) parsed.library = defaultLibrary;
+      return parsed;
+    }catch{
+      const seed = { habits:{}, meals:{}, library: defaultLibrary };
+      localStorage.setItem(LS_KEY, JSON.stringify(seed));
+      return seed;
+    }
+  }
+  function saveLocal(data){ localStorage.setItem(LS_KEY, JSON.stringify(data)); }
+
+  function todayISO(){
+    const d = new Date();
+    const yyyy = d.getFullYear();
+    const mm = String(d.getMonth()+1).padStart(2,'0');
+    const dd = String(d.getDate()).padStart(2,'0');
+    return `${yyyy}-${mm}-${dd}`;
+  }
+  function addDaysISO(iso, days){
+    const d = new Date(iso);
+    d.setDate(d.getDate()+days);
+    const yyyy = d.getFullYear();
+    const mm = String(d.getMonth()+1).padStart(2,'0');
+    const dd = String(d.getDate()).padStart(2,'0');
+    return `${yyyy}-${mm}-${dd}`;
+  }
+  function weekRange(iso){
+    const d = new Date(iso);
+    const day = d.getDay(); // 0 domingo
+    const diffToMon = (day === 0) ? -6 : (1 - day);
+    const mon = new Date(d);
+    mon.setDate(d.getDate()+diffToMon);
+    const sun = new Date(mon);
+    sun.setDate(mon.getDate()+6);
+    const toISO = (x)=>{
+      const yyyy = x.getFullYear();
+      const mm = String(x.getMonth()+1).padStart(2,'0');
+      const dd = String(x.getDate()).padStart(2,'0');
+      return `${yyyy}-${mm}-${dd}`;
+    }
+    return {start: toISO(mon), end: toISO(sun)};
+  }
+  function inRange(iso, start, end){ return iso >= start && iso <= end; }
+  function uid(){
+    // uuid simple (no crypto)
+    return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, c => {
+      const r = Math.random()*16|0, v = c === "x" ? r : (r&0x3|0x8);
+      return v.toString(16);
+    });
+  }
+  function escapeHTML(str){
+    return String(str ?? "")
+      .replaceAll("&","&amp;").replaceAll("<","&lt;")
+      .replaceAll(">","&gt;").replaceAll('"',"&quot;")
+      .replaceAll("'","&#039;");
+  }
+  function showAlert(el, type, text){
+    el.classList.remove("hidden","ok","warn","bad");
+    el.classList.add(type);
+    el.textContent = text;
+    setTimeout(()=> el.classList.add("hidden"), 2200);
+  }
+
+  // -----------------------------
+  // SUPABASE CLIENT
+  // -----------------------------
+  let sb = null;
+  let sbReady = false;
+
+  function setCloudPill(ok, text){
+    cloudStatus.classList.toggle("bad", !ok);
+    cloudStatus.textContent = text;
+  }
+
+  async function initSupabase(){
+    try{
+      sb = window.supabase.createClient(HARDCODE_URL, HARDCODE_ANON);
+      // ping simple: leer 1 fila (si no existe tabla, va a fallar y lo mostramos)
+      const { error } = await sb.from("habits").select("date").limit(1);
+      if(error){
+        sbReady = false;
+        setCloudPill(false, "Cloud: falta DB/Policies");
+        cloudHint.textContent = "Abrí Supabase y pegá el SQL de tablas/policies (abajo).";
+        return;
+      }
+      sbReady = true;
+      setCloudPill(true, "Cloud: OK ✅");
+      cloudHint.textContent = "Guardado en la nube habilitado.";
+    }catch(e){
+      sbReady = false;
+      setCloudPill(false, "Cloud: OFF");
+      cloudHint.textContent = "Sin Supabase (modo local).";
+    }
+  }
+
+  // -----------------------------
+  // CLOUD HELPERS (tables)
+  // habits: upsert por date
+  // meals: header
+  // meal_items: filas A–E
+  // food_library: catálogo
+  // -----------------------------
+  async function cloudGetHabits(date){
+    const { data, error } = await sb.from("habits").select("*").eq("date", date).maybeSingle();
+    if(error) throw error;
+    return data;
+  }
+  async function cloudUpsertHabits(date, obj){
+    const payload = {
+      date,
+      sleep: !!obj.sleep,
+      fasting: !!obj.fasting,
+      sun: !!obj.sun,
+      nap: !!obj.nap,
+      meals_logged: !!obj.mealsLogged,
+      water: Number(obj.water || 0),
+      phone: Number(obj.phone || 0),
+      mood: Number(obj.mood || 3),
+      fatigue: Number(obj.fatigue || 3),
+      stress: Number(obj.stress || 3),
+      sleepq: Number(obj.sleepq || 3),
+      updated_at: new Date().toISOString()
+    };
+    const { error } = await sb.from("habits").upsert(payload, { onConflict:"date" });
+    if(error) throw error;
+  }
+
+  async function cloudListMealsByDate(date){
+    const { data, error } = await sb.from("meals").select("*").eq("date", date).order("created_at", {ascending:false});
+    if(error) throw error;
+    return data || [];
+  }
+  async function cloudInsertMeal(date, mealObj){
+    // insertar header
+    const header = {
+      id: mealObj.id,
+      date,
+      meal_type: mealObj.type,
+      note: mealObj.note || null,
+      hunger_before: Number(mealObj.hungerBefore || 5),
+      hunger_after: Number(mealObj.hungerAfter || 7),
+      created_at: mealObj.createdAt
+    };
+    const { error: e1 } = await sb.from("meals").insert(header);
+    if(e1) throw e1;
+
+    // insertar items (A-E)
+    const items = (mealObj.foods || []).map(f => ({
+      id: uid(),
+      meal_id: mealObj.id,
+      date,
+      meal_type: mealObj.type,
+      food_name: f.name,
+      category: f.category,
+      percentage: Number(f.percent ?? 0),
+      detail: f.detail || null,
+      created_at: mealObj.createdAt
+    }));
+    const { error: e2 } = await sb.from("meal_items").insert(items);
+    if(e2) throw e2;
+  }
+  async function cloudDeleteMeal(date, mealId){
+    // borrar items y header
+    const { error: e1 } = await sb.from("meal_items").delete().eq("meal_id", mealId);
+    if(e1) throw e1;
+    const { error: e2 } = await sb.from("meals").delete().eq("id", mealId).eq("date", date);
+    if(e2) throw e2;
+  }
+
+  async function cloudGetMealItemsRange(start, end){
+    const { data, error } = await sb.from("meal_items")
+      .select("date, meal_type, food_name, category, percentage")
+      .gte("date", start)
+      .lte("date", end)
+      .order("date", {ascending:true});
+    if(error) throw error;
+    return (data || []).map(r => ({
+      date: r.date,
+      meal_type: r.meal_type,
+      food_name: r.food_name,
+      category: r.category,
+      percentage: Number(r.percentage ?? 0)
+    }));
+  }
+
+  async function cloudListLibrary(){
+    const { data, error } = await sb.from("food_library").select("name, category").order("category", {ascending:true}).order("name", {ascending:true});
+    if(error) throw error;
+    if(!data || !data.length) return null;
+    return data;
+  }
+  async function cloudInsertLibraryItem(name, category){
+    const { error } = await sb.from("food_library").insert({ name, category, created_at: new Date().toISOString() });
+    if(error) throw error;
+  }
+
+  function isCloudOn(){
+    return useCloud.checked && sbReady;
+  }
+
+  // -----------------------------
+  // DOM ELEMENTS
+  // -----------------------------
+  const tabButtons = document.querySelectorAll(".tabbtn");
+  const tabHabits = document.getElementById("tab-habits");
+  const tabMeals = document.getElementById("tab-meals");
+  const tabReports = document.getElementById("tab-reports");
+
+  // Habits
+  const h_date = document.getElementById("h_date");
+  const h_sleep = document.getElementById("h_sleep");
+  const h_fasting = document.getElementById("h_fasting");
+  const h_sun = document.getElementById("h_sun");
+  const h_nap = document.getElementById("h_nap");
+  const h_mealsLogged = document.getElementById("h_mealsLogged");
+  const h_water = document.getElementById("h_water");
+  const h_phone = document.getElementById("h_phone");
+  const h_mood = document.getElementById("h_mood");
+  const h_fatigue = document.getElementById("h_fatigue");
+  const h_stress = document.getElementById("h_stress");
+  const h_sleepq = document.getElementById("h_sleepq");
+  const btnSaveHabits = document.getElementById("btnSaveHabits");
+  const btnLoadHabits = document.getElementById("btnLoadHabits");
+  const habitsAlert = document.getElementById("habitsAlert");
+  const wkSleep = document.getElementById("wkSleep");
+  const wkNap = document.getElementById("wkNap");
+  const wkRangeText = document.getElementById("wkRangeText");
+
+  // Meals
+  const m_date = document.getElementById("m_date");
+  const m_type = document.getElementById("m_type");
+  const m_hungerBefore = document.getElementById("m_hungerBefore");
+  const m_hungerAfter = document.getElementById("m_hungerAfter");
+  const m_note = document.getElementById("m_note");
+  const m_foodSelect = document.getElementById("m_foodSelect");
+  const m_foodCat = document.getElementById("m_foodCat");
+  const m_percent = document.getElementById("m_percent");
+  const m_percentValue = document.getElementById("m_percentValue");
+  const m_remainingLabel = document.getElementById("m_remainingLabel");
+  const plateUsed = document.getElementById("plateUsed");
+  const plateAdding = document.getElementById("plateAdding");
+  const plateHint = document.getElementById("plateHint");
+  const m_detail = document.getElementById("m_detail");
+  const btnAddFoodToMeal = document.getElementById("btnAddFoodToMeal");
+  const btnClearMealFoods = document.getElementById("btnClearMealFoods");
+  const mealFoodsList = document.getElementById("mealFoodsList");
+  const btnSaveMeal = document.getElementById("btnSaveMeal");
+  const btnMarkMealsLogged = document.getElementById("btnMarkMealsLogged");
+  const mealsAlert = document.getElementById("mealsAlert");
+  const mealsDayList = document.getElementById("mealsDayList");
+  const lib_name = document.getElementById("lib_name");
+  const lib_cat = document.getElementById("lib_cat");
+  const btnAddToLibrary = document.getElementById("btnAddToLibrary");
+
+  // Reports
+  const r_start = document.getElementById("r_start");
+  const r_end = document.getElementById("r_end");
+  const btnBuildReport = document.getElementById("btnBuildReport");
+  const btnExportCSV = document.getElementById("btnExportCSV");
+  const btnExportXLSX = document.getElementById("btnExportXLSX");
+  const btnExportJSON = document.getElementById("btnExportJSON");
+  const importJSON = document.getElementById("importJSON");
+  const reportTableBody = document.querySelector("#reportTable tbody");
+  const catSummary = document.getElementById("catSummary");
+  const reportsAlert = document.getElementById("reportsAlert");
+  const reportStats = document.getElementById("reportStats");
+
+  // -----------------------------
+  // STATE
+  // -----------------------------
+  let currentMealFoods = [];
+  let currentReportRows = [];
+  let habitsChart = null;
+  let wellbeingChart = null;
+  let reportCharts = { catPie:null, catBar:null, dailyMeals:null, avgPercent:null, dailyStack:null };
+
+  // -----------------------------
+  // INIT DATES
+  // -----------------------------
+  h_date.value = todayISO();
+  m_date.value = todayISO();
+  r_end.value = todayISO();
+  r_start.value = addDaysISO(todayISO(), -7);
+
+  // restore cloud toggle preference
+  const savedToggle = localStorage.getItem(LS_USE_CLOUD);
+  if(savedToggle !== null) useCloud.checked = savedToggle === "1";
+  useCloud.addEventListener("change", () => {
+    localStorage.setItem(LS_USE_CLOUD, useCloud.checked ? "1" : "0");
+    showAlert(habitsAlert, "ok", useCloud.checked ? "Cloud activado ✅" : "Cloud desactivado (local) ✅");
+  });
+
+  // -----------------------------
+  // TABS
+  // -----------------------------
+  tabButtons.forEach(btn=>{
+    btn.addEventListener("click", ()=>{
+      tabButtons.forEach(b=>b.classList.remove("active"));
+      btn.classList.add("active");
+      const t = btn.dataset.tab;
+      tabHabits.classList.toggle("hidden", t !== "habits");
+      tabMeals.classList.toggle("hidden", t !== "meals");
+      tabReports.classList.toggle("hidden", t !== "reports");
+
+      if(t === "habits") refreshHabitsUI();
+      if(t === "meals") refreshMealsUI();
+      if(t === "reports") refreshReportsUI();
+    });
+  });
+
+  // -----------------------------
+  // HABITS LOGIC
+  // -----------------------------
+  function localLoadHabits(date){
+    const data = loadLocal();
+    return data.habits[date] || {
+      sleep:false, fasting:false, sun:false, nap:false, mealsLogged:false,
+      water:0, phone:0, mood:3, fatigue:3, stress:3, sleepq:3
+    };
+  }
+  function localSaveHabits(date, obj){
+    const data = loadLocal();
+    data.habits[date] = obj;
+    saveLocal(data);
+  }
+
+  function updatePhoneAlert(){
+    const phone = parseFloat(h_phone.value || 0);
+    if(phone > 4){
+      habitsAlert.classList.remove("hidden","ok","warn");
+      habitsAlert.classList.add("bad");
+      habitsAlert.textContent = "📱 Celular alto: superaste 4 horas.";
+    } else {
+      habitsAlert.classList.remove("hidden","bad","warn");
+      habitsAlert.classList.add("ok");
+      habitsAlert.textContent = "📱 Celular OK (≤ 4 horas).";
+    }
+  }
+
+  async function refreshHabitsUI(){
+    const iso = h_date.value;
+
+    try{
+      let h = null;
+
+      if(isCloudOn()){
+        const row = await cloudGetHabits(iso);
+        if(row){
+          h = {
+            sleep: !!row.sleep,
+            fasting: !!row.fasting,
+            sun: !!row.sun,
+            nap: !!row.nap,
+            mealsLogged: !!row.meals_logged,
+            water: Number(row.water || 0),
+            phone: Number(row.phone || 0),
+            mood: Number(row.mood || 3),
+            fatigue: Number(row.fatigue || 3),
+            stress: Number(row.stress || 3),
+            sleepq: Number(row.sleepq || 3),
+          };
+          // cache local
+          localSaveHabits(iso, h);
+        }
+      }
+
+      if(!h){
+        h = localLoadHabits(iso);
+      }
+
+      h_sleep.checked = !!h.sleep;
+      h_fasting.checked = !!h.fasting;
+      h_sun.checked = !!h.sun;
+      h_nap.checked = !!h.nap;
+      h_mealsLogged.checked = !!h.mealsLogged;
+      h_water.value = (h.water ?? 0);
+      h_phone.value = (h.phone ?? 0);
+      h_mood.value = (h.mood ?? 3);
+      h_fatigue.value = (h.fatigue ?? 3);
+      h_stress.value = (h.stress ?? 3);
+      h_sleepq.value = (h.sleepq ?? 3);
+
+      updatePhoneAlert();
+      await refreshWeeklyDashboard(iso);
+
+    }catch(e){
+      showAlert(habitsAlert, "bad", "Error cargando hábitos (revisar DB/Policies)");
+      // fallback local
+      const h = localLoadHabits(iso);
+      h_sleep.checked = !!h.sleep;
+      h_fasting.checked = !!h.fasting;
+      h_sun.checked = !!h.sun;
+      h_nap.checked = !!h.nap;
+      h_mealsLogged.checked = !!h.mealsLogged;
+      h_water.value = (h.water ?? 0);
+      h_phone.value = (h.phone ?? 0);
+      h_mood.value = (h.mood ?? 3);
+      h_fatigue.value = (h.fatigue ?? 3);
+      h_stress.value = (h.stress ?? 3);
+      h_sleepq.value = (h.sleepq ?? 3);
+      updatePhoneAlert();
+      await refreshWeeklyDashboard(iso);
+    }
+  }
+
+  btnSaveHabits.addEventListener("click", async ()=>{
+    const iso = h_date.value;
+    const obj = {
+      sleep: h_sleep.checked,
+      fasting: h_fasting.checked,
+      sun: h_sun.checked,
+      nap: h_nap.checked,
+      mealsLogged: h_mealsLogged.checked,
+      water: parseFloat(h_water.value || 0),
+      phone: parseFloat(h_phone.value || 0),
+      mood: parseInt(h_mood.value || 3),
+      fatigue: parseInt(h_fatigue.value || 3),
+      stress: parseInt(h_stress.value || 3),
+      sleepq: parseInt(h_sleepq.value || 3),
+    };
+
+    // siempre guardamos local como backup
+    localSaveHabits(iso, obj);
+
+    try{
+      if(isCloudOn()){
+        await cloudUpsertHabits(iso, obj);
+      }
+      updatePhoneAlert();
+      await refreshWeeklyDashboard(iso);
+      showAlert(habitsAlert, (obj.phone>4 ? "bad":"ok"), "Guardado ✅");
+    }catch(e){
+      showAlert(habitsAlert, "warn", "Guardado local ✅ (Cloud falló)");
+    }
+  });
+
+  btnLoadHabits.addEventListener("click", async ()=>{
+    await refreshHabitsUI();
+    showAlert(habitsAlert, "ok", "Cargado ✅");
+  });
+
+  h_date.addEventListener("change", refreshHabitsUI);
+  h_phone.addEventListener("input", updatePhoneAlert);
+
+  async function refreshWeeklyDashboard(iso){
+    const {start, end} = weekRange(iso);
+    wkRangeText.textContent = `Semana: ${start} → ${end}`;
+    const days = Array.from({length:7}, (_,i)=> addDaysISO(start, i));
+
+    const totals = { sleep:0, waterOK:0, fasting:0, mealsLogged:0, phoneOK:0, sun:0, nap:0 };
+    let moodSum=0, fatigueSum=0, stressSum=0, sleepqSum=0, n=0;
+
+    // Tomamos datos del local cache (rápido). Si querés cloud-only, lo cambiamos.
+    const local = loadLocal();
+    days.forEach(d=>{
+      const h = local.habits[d];
+      if(!h) return;
+
+      if(h.sleep) totals.sleep++;
+      if((h.water ?? 0) >= 2) totals.waterOK++;
+      if(h.fasting) totals.fasting++;
+      if(h.mealsLogged) totals.mealsLogged++;
+      if((h.phone ?? 0) <= 4) totals.phoneOK++;
+      if(h.sun) totals.sun++;
+      if(h.nap) totals.nap++;
+
+      if(h.mood != null){
+        moodSum += Number(h.mood || 0);
+        fatigueSum += Number(h.fatigue || 0);
+        stressSum += Number(h.stress || 0);
+        sleepqSum += Number(h.sleepq || 0);
+        n++;
+      }
+    });
+
+    if(totals.sleep < 3){
+      wkSleep.className = "alert warn";
+      wkSleep.textContent = `${totals.sleep} / 3 (faltan ${3-totals.sleep})`;
+    } else {
+      wkSleep.className = "alert ok";
+      wkSleep.textContent = `${totals.sleep} / 3 ✅`;
+    }
+
+    if(totals.nap > 3){
+      wkNap.className = "alert bad";
+      wkNap.textContent = `${totals.nap} / 3 (excedido)`;
+    } else {
+      wkNap.className = "alert ok";
+      wkNap.textContent = `${totals.nap} / 3`;
+    }
+
+    const labels = ["Sueño <00:00","Agua ≥2L","Ayuno","Comidas","Celular OK","Sol"];
+    const vals = [
+      Math.round((totals.sleep/7)*100),
+      Math.round((totals.waterOK/7)*100),
+      Math.round((totals.fasting/7)*100),
+      Math.round((totals.mealsLogged/7)*100),
+      Math.round((totals.phoneOK/7)*100),
+      Math.round((totals.sun/7)*100),
+    ];
+
+    const ctx1 = document.getElementById("habitsChart").getContext("2d");
+    if(habitsChart) habitsChart.destroy();
+    habitsChart = new Chart(ctx1, {
+      type:"bar",
+      data:{ labels, datasets:[{ label:"% cumplimiento semanal", data: vals, borderWidth:1 }] },
+      options:{ responsive:true, plugins:{ legend:{ display:false } }, scales:{ y:{ beginAtZero:true, max:100 } } }
+    });
+
+    const avg = (x)=> n ? Number((x/n).toFixed(2)) : 0;
+    const ctx2 = document.getElementById("wellbeingChart").getContext("2d");
+    if(wellbeingChart) wellbeingChart.destroy();
+    wellbeingChart = new Chart(ctx2, {
+      type:"bar",
+      data:{
+        labels:["Ánimo","Cansancio","Estrés","Sueño"],
+        datasets:[{ label:"Promedio semanal", data:[avg(moodSum), avg(fatigueSum), avg(stressSum), avg(sleepqSum)], borderWidth:1 }]
+      },
+      options:{ responsive:true, plugins:{ legend:{ display:false } }, scales:{ y:{ beginAtZero:true, max:5 } } }
+    });
+  }
+
+  // -----------------------------
+  // MEALS LOGIC
+  // -----------------------------
+  async function getLibrary(){
+    // Siempre empezar con los defaults + lo que haya en local
+    const data = loadLocal();
+    const localLib = data.library || defaultLibrary;
+
+    // Mapa por nombre (lowercase) para deduplicar
+    const merged = new Map();
+    defaultLibrary.forEach(x => merged.set(x.name.toLowerCase(), x));
+    localLib.forEach(x => merged.set(x.name.toLowerCase(), x));
+
+    if(isCloudOn()){
+      try{
+        const cloudLib = await cloudListLibrary();
+        if(cloudLib && cloudLib.length){
+          cloudLib.forEach(x => merged.set(x.name.toLowerCase(), x));
+
+          // Sync defaults to cloud if missing
+          const cloudNames = new Set(cloudLib.map(x => x.name.toLowerCase()));
+          const missing = defaultLibrary.filter(x => !cloudNames.has(x.name.toLowerCase()));
+          for(const item of missing){
+            try{ await cloudInsertLibraryItem(item.name, item.category); }catch(e){}
+          }
+          // Also sync local-only items to cloud
+          localLib.forEach(x => {
+            if(!cloudNames.has(x.name.toLowerCase())){
+              cloudInsertLibraryItem(x.name, x.category).catch(()=>{});
+            }
+          });
+        }
+      }catch(e){}
+    }
+
+    const result = Array.from(merged.values());
+
+    // Update local library to reflect the full merged set
+    data.library = result;
+    saveLocal(data);
+
+    return result;
+  }
+
+  async function buildFoodSelect(){
+    const lib = (await getLibrary()).slice().sort((a,b)=>{
+      if(a.category === b.category) return a.name.localeCompare(b.name);
+      return a.category.localeCompare(b.category);
+    });
+
+    m_foodSelect.innerHTML = "";
+    lib.forEach((x)=>{
+      const opt = document.createElement("option");
+      opt.value = x.name;
+      opt.textContent = `${x.name} • ${x.category}`;
+      opt.dataset.category = x.category;
+      m_foodSelect.appendChild(opt);
+    });
+    m_foodCat.value = lib.length ? lib[0].category : "";
+  }
+
+  function renderMealFoodsList(){
+    if(currentMealFoods.length === 0){
+      mealFoodsList.innerHTML = "<span class='mini'>Aún no agregaste alimentos.</span>";
+      return;
+    }
+    const ul = document.createElement("ul");
+    let totalPct = 0;
+    currentMealFoods.forEach((f, idx)=>{
+      totalPct += f.percent;
+      const li = document.createElement("li");
+      const extra = f.detail ? ` · ${f.detail}` : "";
+      li.innerHTML = `${escapeHTML(f.name)} (${escapeHTML(f.category)}) — <b>${f.percent}%</b>${escapeHTML(extra)} <span style="cursor:pointer;color:#DC2626;font-weight:900;margin-left:6px;" data-rmidx="${idx}" title="Quitar">✕</span>`;
+      ul.appendChild(li);
+    });
+    const summary = document.createElement("li");
+    summary.style.cssText = "list-style:none;margin-top:6px;padding-top:6px;border-top:1px dashed var(--border);font-weight:900;";
+    const remaining = 100 - totalPct;
+    summary.innerHTML = `Total: <b>${totalPct}%</b> del plato${remaining > 0 ? ` · <span style="color:var(--primary);">${remaining}% disponible</span>` : ` · <span style="color:#059669;">Plato completo ✅</span>`}`;
+    ul.appendChild(summary);
+    mealFoodsList.innerHTML = "";
+    mealFoodsList.appendChild(ul);
+
+    // Bind remove buttons
+    mealFoodsList.querySelectorAll("[data-rmidx]").forEach(btn => {
+      btn.addEventListener("click", ()=>{
+        const idx = parseInt(btn.dataset.rmidx);
+        currentMealFoods.splice(idx, 1);
+        renderMealFoodsList();
+        updatePlateUI();
+      });
+    });
+  }
+
+  function localGetMealsForDate(iso){
+    const data = loadLocal();
+    return data.meals[iso] || [];
+  }
+  function localAddMeal(iso, mealObj){
+    const data = loadLocal();
+    if(!data.meals[iso]) data.meals[iso] = [];
+    data.meals[iso].push(mealObj);
+    saveLocal(data);
+  }
+  function localDeleteMeal(iso, id){
+    const data = loadLocal();
+    if(!data.meals[iso]) return;
+    data.meals[iso] = data.meals[iso].filter(m=> m.id !== id);
+    saveLocal(data);
+  }
+
+  async function refreshMealsDayList(){
+    const iso = m_date.value;
+    let meals = [];
+
+    if(isCloudOn()){
+      try{
+        meals = await cloudListMealsByDate(iso);
+        // cache local (para que reporte semanal gráfico no se rompa si está offline)
+        const local = loadLocal();
+        local.meals[iso] = meals.map(m => ({
+          id: m.id,
+          type: m.meal_type,
+          note: m.note || "",
+          hungerBefore: m.hunger_before,
+          hungerAfter: m.hunger_after,
+          foods: [], // items se guardan en meal_items (para reporte), en UI mostramos foods desde meal_items si querés (lo escalamos luego)
+          createdAt: m.created_at
+        }));
+        saveLocal(local);
+      }catch(e){
+        meals = localGetMealsForDate(iso);
+      }
+    } else {
+      meals = localGetMealsForDate(iso);
+    }
+
+    // Para la UI “Comidas del día”: si estamos en cloud, reconstruimos foods desde local backup o dejamos vacío.
+    // (Lo más importante era que BOTONES funcionen + reporte funcione desde meal_items.)
+    mealsDayList.innerHTML = "";
+    if(!meals.length){
+      mealsDayList.innerHTML = "<div class='alert ok'>Todavía no cargaste comidas para este día.</div>";
+      return;
+    }
+
+    meals.forEach(meal=>{
+      const box = document.createElement("div");
+      box.className = "mealItem";
+
+      const head = document.createElement("div");
+      head.className = "mealHead";
+      const left = document.createElement("strong");
+      left.textContent = meal.meal_type || meal.type;
+      const right = document.createElement("em");
+      const created = meal.created_at || meal.createdAt || "";
+      right.textContent = created ? String(created).replace("T"," ").slice(0,16) : "";
+      head.appendChild(left); head.appendChild(right);
+
+      const meta = document.createElement("div");
+      meta.className = "mealMeta";
+      const hb = meal.hunger_before ?? meal.hungerBefore ?? "-";
+      const ha = meal.hunger_after ?? meal.hungerAfter ?? "-";
+      meta.textContent = `Hambre: ${hb} · Saciedad: ${ha}`;
+
+      const note = document.createElement("div");
+      note.className = "mealNote";
+      const nt = meal.note || "";
+      if(nt) note.textContent = "📝 " + nt;
+
+      const del = document.createElement("button");
+      del.className = "tinybtn";
+      del.textContent = "🗑️ Borrar comida";
+      del.addEventListener("click", async ()=>{
+        try{
+          if(isCloudOn()){
+            await cloudDeleteMeal(iso, meal.id);
+          }
+          localDeleteMeal(iso, meal.id);
+          await refreshMealsDayList();
+          showAlert(mealsAlert, "ok", "Borrado ✅");
+        }catch(e){
+          showAlert(mealsAlert, "bad", "No se pudo borrar (Cloud/Policies)");
+        }
+      });
+
+      box.appendChild(head);
+      box.appendChild(meta);
+      if(nt) box.appendChild(note);
+      box.appendChild(del);
+      mealsDayList.appendChild(box);
+    });
+  }
+
+  async function refreshMealsUI(){
+    currentMealFoods = [];
+    renderMealFoodsList();
+    updatePlateUI();
+    await buildFoodSelect();
+    await refreshMealsDayList();
+  }
+
+  m_foodSelect.addEventListener("change", ()=>{
+    const sel = m_foodSelect.selectedOptions[0];
+    m_foodCat.value = sel ? sel.dataset.category : "";
+  });
+
+  // --- PLATE PERCENTAGE HELPERS ---
+  function getUsedPercent(){
+    return currentMealFoods.reduce((s, f) => s + (f.percent || 0), 0);
+  }
+  function getRemainingPercent(){
+    return Math.max(0, 100 - getUsedPercent());
+  }
+  function updatePlateUI(){
+    const used = getUsedPercent();
+    const remaining = getRemainingPercent();
+    const maxVal = remaining;
+
+    // Update slider max and clamp current value
+    m_percent.max = maxVal;
+    if(parseInt(m_percent.value) > maxVal){
+      m_percent.value = maxVal;
+    }
+    if(maxVal > 0 && parseInt(m_percent.value) === 0){
+      m_percent.value = Math.min(maxVal, 30);
+    }
+    m_percentValue.textContent = `${m_percent.value}%`;
+
+    // Update label
+    m_remainingLabel.textContent = remaining > 0
+      ? `${remaining}% disponible`
+      : "Plato completo";
+    m_remainingLabel.classList.toggle("plateWarning", remaining === 0);
+
+    // Update visual bar
+    const adding = parseInt(m_percent.value) || 0;
+    plateUsed.style.width = `${used}%`;
+    plateAdding.style.width = `${adding}%`;
+
+    // Update hint
+    if(used === 0){
+      plateHint.textContent = "Ej: Vegetales 50% · Proteína 30% · Carbo 20%";
+    } else if(remaining === 0){
+      plateHint.innerHTML = "<span class='plateWarning'>El plato está completo (100%). Limpiá o guardá la comida.</span>";
+    } else {
+      plateHint.textContent = `Usado: ${used}% · Sumando: ${adding}% · Libre: ${remaining - adding}%`;
+    }
+  }
+
+  m_percent.addEventListener("input", ()=>{
+    m_percentValue.textContent = `${m_percent.value}%`;
+    const adding = parseInt(m_percent.value) || 0;
+    plateAdding.style.width = `${adding}%`;
+    const used = getUsedPercent();
+    const remaining = getRemainingPercent();
+    if(used === 0 && remaining === 100){
+      plateHint.textContent = "Ej: Vegetales 50% · Proteína 30% · Carbo 20%";
+    } else {
+      plateHint.textContent = `Usado: ${used}% · Sumando: ${adding}% · Libre: ${remaining - adding}%`;
+    }
+  });
+
+  btnAddFoodToMeal.addEventListener("click", ()=>{
+    const foodName = m_foodSelect.value;
+    if(!foodName){
+      showAlert(mealsAlert, "warn", "No hay alimentos en catálogo");
+      return;
+    }
+    const remaining = getRemainingPercent();
+    if(remaining <= 0){
+      showAlert(mealsAlert, "warn", "El plato ya está al 100%. Limpiá o guardá la comida.");
+      return;
+    }
+    const percent = Math.min(parseInt(m_percent.value || 0), remaining);
+    if(percent <= 0){
+      showAlert(mealsAlert, "warn", "Asigná al menos 5% al alimento");
+      return;
+    }
+    const detail = (m_detail.value || "").trim();
+
+    currentMealFoods.push({
+      name: foodName,
+      category: m_foodCat.value || "Sin categoría",
+      percent,
+      detail
+    });
+
+    m_detail.value = "";
+    renderMealFoodsList();
+    updatePlateUI();
+    showAlert(mealsAlert, "ok", `${foodName} (${percent}%) agregado ✅`);
+  });
+
+  btnClearMealFoods.addEventListener("click", ()=>{
+    currentMealFoods = [];
+    renderMealFoodsList();
+    updatePlateUI();
+    showAlert(mealsAlert, "ok", "Lista limpia ✅");
+  });
+
+  btnSaveMeal.addEventListener("click", async ()=>{
+    const iso = m_date.value;
+
+    if(currentMealFoods.length === 0){
+      showAlert(mealsAlert, "warn", "Agregá al menos 1 alimento");
+      return;
+    }
+
+    const mealObj = {
+      id: uid(),
+      type: m_type.value,
+      note: (m_note.value || "").trim(),
+      hungerBefore: parseInt(m_hungerBefore.value || 5),
+      hungerAfter: parseInt(m_hungerAfter.value || 7),
+      foods: currentMealFoods.slice(),
+      createdAt: new Date().toISOString()
+    };
+
+    // siempre guardar local
+    localAddMeal(iso, mealObj);
+
+    try{
+      if(isCloudOn()){
+        await cloudInsertMeal(iso, mealObj);
+      }
+      currentMealFoods = [];
+      renderMealFoodsList();
+      updatePlateUI();
+      m_note.value = "";
+      await refreshMealsDayList();
+      showAlert(mealsAlert, "ok", "Comida guardada ✅");
+    }catch(e){
+      showAlert(mealsAlert, "warn", "Guardado local ✅ (Cloud falló/Policies)");
+    }
+  });
+
+  btnMarkMealsLogged.addEventListener("click", async ()=>{
+    const iso = m_date.value;
+    const h = localLoadHabits(iso);
+    h.mealsLogged = true;
+    localSaveHabits(iso, h);
+
+    try{
+      if(isCloudOn()){
+        await cloudUpsertHabits(iso, h);
+      }
+      showAlert(mealsAlert, "ok", "Día marcado ✅");
+    }catch(e){
+      showAlert(mealsAlert, "warn", "Marcado local ✅ (Cloud falló)");
+    }
+  });
+
+  btnAddToLibrary.addEventListener("click", async ()=>{
+    const name = (lib_name.value || "").trim();
+    const cat = lib_cat.value;
+    if(!name){
+      showAlert(mealsAlert, "warn", "Escribí un nombre");
+      return;
+    }
+
+    // local
+    const data = loadLocal();
+    const exists = (data.library || []).some(x => x.name.toLowerCase() === name.toLowerCase());
+    if(exists){
+      showAlert(mealsAlert, "warn", "Ya existe en el catálogo");
+      return;
+    }
+    data.library.push({name, category:cat});
+    saveLocal(data);
+
+    try{
+      if(isCloudOn()){
+        await cloudInsertLibraryItem(name, cat);
+      }
+      lib_name.value = "";
+      await buildFoodSelect();
+      showAlert(mealsAlert, "ok", "Agregado al catálogo ✅");
+    }catch(e){
+      // si falla cloud, igual ya quedó local
+      lib_name.value = "";
+      await buildFoodSelect();
+      showAlert(mealsAlert, "warn", "Agregado local ✅ (Cloud falló)");
+    }
+  });
+
+  m_date.addEventListener("change", refreshMealsDayList);
+
+  // -----------------------------
+  // REPORTS LOGIC (A–E)
+  // -----------------------------
+  async function buildReport(start, end){
+    let rows = [];
+
+    if(isCloudOn()){
+      try{
+        rows = await cloudGetMealItemsRange(start, end);
+      }catch(e){
+        rows = buildReportLocal(start, end);
+      }
+    } else {
+      rows = buildReportLocal(start, end);
+    }
+
+    currentReportRows = rows;
+    renderReportTable(rows);
+    renderCategorySummary(rows);
+    renderReportDashboard(rows, start, end);
+  }
+
+  function buildReportLocal(start, end){
+    const data = loadLocal();
+    const rows = [];
+    const allDates = Object.keys(data.meals || {}).sort();
+    allDates.forEach(d=>{
+      if(!inRange(d, start, end)) return;
+      const meals = data.meals[d] || [];
+      meals.forEach(m=>{
+        (m.foods || []).forEach(f=>{
+          rows.push({
+            date: d,
+            meal_type: m.type,
+            food_name: f.name,
+            category: f.category,
+            percentage: Number(f.percent ?? 0)
+          });
+        });
+      });
+    });
+    return rows;
+  }
+
+  function renderReportTable(rows){
+    reportTableBody.innerHTML = "";
+    if(rows.length === 0){
+      const tr = document.createElement("tr");
+      const td = document.createElement("td");
+      td.colSpan = 5;
+      td.textContent = "No hay datos en ese rango.";
+      tr.appendChild(td);
+      reportTableBody.appendChild(tr);
+      return;
+    }
+
+    rows.forEach(r=>{
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td>${escapeHTML(r.date)}</td>
+        <td>${escapeHTML(r.meal_type)}</td>
+        <td>${escapeHTML(r.food_name)}</td>
+        <td>${escapeHTML(r.category)}</td>
+        <td>${escapeHTML(String(r.percentage))}%</td>
+      `;
+      reportTableBody.appendChild(tr);
+    });
+  }
+
+  function renderCategorySummary(rows){
+    const counts = {};
+    rows.forEach(r=>{
+      if(!r.category) return;
+      counts[r.category] = (counts[r.category] || 0) + 1;
+    });
+
+    const entries = Object.entries(counts).sort((a,b)=>b[1]-a[1]);
+    if(entries.length === 0){
+      catSummary.innerHTML = "<div class='alert warn'>No hay alimentos cargados en ese rango.</div>";
+      return;
+    }
+
+    let html = "<ul style='margin:10px 0 0; padding-left:18px;'>";
+    entries.forEach(([cat, n])=>{
+      html += `<li><b>${escapeHTML(cat)}</b> — ${n} registros</li>`;
+    });
+    html += "</ul>";
+    catSummary.innerHTML = html;
+  }
+
+  // ---------------------------------
+  // REPORT DASHBOARD (interactive charts)
+  // ---------------------------------
+  const CHART_COLORS = [
+    '#6C8CFF','#F59E0B','#10B981','#EF4444','#8B5CF6','#EC4899',
+    '#14B8A6','#F97316','#06B6D4','#84CC16','#A855F7','#E11D48'
+  ];
+
+  function destroyReportCharts(){
+    Object.keys(reportCharts).forEach(k=>{
+      if(reportCharts[k]){ reportCharts[k].destroy(); reportCharts[k]=null; }
+    });
+  }
+
+  function renderReportDashboard(rows, start, end){
+    destroyReportCharts();
+
+    // --- STAT BOXES ---
+    const uniqueDates = [...new Set(rows.map(r=>r.date))];
+    const uniqueMeals = [...new Set(rows.map(r=>r.date+"|"+r.meal_type))];
+    const uniqueFoods = [...new Set(rows.map(r=>r.food_name))];
+    const avgPct = rows.length ? Math.round(rows.reduce((s,r)=>s+r.percentage,0)/rows.length) : 0;
+
+    reportStats.innerHTML = `
+      <div class="statBox"><div class="statNum">${uniqueDates.length}</div><div class="statLabel">Días registrados</div></div>
+      <div class="statBox"><div class="statNum">${uniqueMeals.length}</div><div class="statLabel">Total comidas</div></div>
+      <div class="statBox"><div class="statNum">${rows.length}</div><div class="statLabel">Alimentos registrados</div></div>
+      <div class="statBox"><div class="statNum">${uniqueFoods.length}</div><div class="statLabel">Alimentos distintos</div></div>
+      <div class="statBox"><div class="statNum">${avgPct}%</div><div class="statLabel">% promedio</div></div>
+    `;
+
+    if(rows.length === 0){
+      document.getElementById("reportDashGrid").style.display = "none";
+      return;
+    }
+    document.getElementById("reportDashGrid").style.display = "";
+
+    // --- 1) PIE: distribución por categoría (count) ---
+    const catCounts = {};
+    rows.forEach(r => { catCounts[r.category] = (catCounts[r.category]||0)+1; });
+    const catLabels = Object.keys(catCounts).sort();
+    const catVals = catLabels.map(c => catCounts[c]);
+
+    reportCharts.catPie = new Chart(document.getElementById("chartCatPie").getContext("2d"), {
+      type: "doughnut",
+      data: {
+        labels: catLabels,
+        datasets: [{
+          data: catVals,
+          backgroundColor: catLabels.map((_,i) => CHART_COLORS[i % CHART_COLORS.length]),
+          borderWidth: 2,
+          borderColor: "#fff"
+        }]
+      },
+      options: {
+        responsive: true,
+        plugins: {
+          legend: { position:"bottom", labels:{ font:{ size:11, weight:"bold" }, padding:10 } },
+          tooltip: {
+            callbacks: {
+              label: (ctx) => {
+                const total = ctx.dataset.data.reduce((a,b)=>a+b,0);
+                const pct = Math.round((ctx.raw/total)*100);
+                return `${ctx.label}: ${ctx.raw} (${pct}%)`;
+              }
+            }
+          }
+        }
+      }
+    });
+
+    // --- 2) BAR: registros por categoría ---
+    reportCharts.catBar = new Chart(document.getElementById("chartCatBar").getContext("2d"), {
+      type: "bar",
+      data: {
+        labels: catLabels,
+        datasets: [{
+          label: "Registros",
+          data: catVals,
+          backgroundColor: catLabels.map((_,i) => CHART_COLORS[i % CHART_COLORS.length]),
+          borderRadius: 8,
+          borderSkipped: false
+        }]
+      },
+      options: {
+        responsive: true,
+        plugins: { legend:{ display:false } },
+        scales: { y:{ beginAtZero:true, ticks:{ stepSize:1 } } }
+      }
+    });
+
+    // --- 3) BAR: comidas por día ---
+    const dailyMealCounts = {};
+    uniqueMeals.forEach(m => {
+      const d = m.split("|")[0];
+      dailyMealCounts[d] = (dailyMealCounts[d]||0)+1;
+    });
+    const sortedDates = Object.keys(dailyMealCounts).sort();
+    const shortDates = sortedDates.map(d => d.slice(5)); // MM-DD
+
+    reportCharts.dailyMeals = new Chart(document.getElementById("chartDailyMeals").getContext("2d"), {
+      type: "bar",
+      data: {
+        labels: shortDates,
+        datasets: [{
+          label: "Comidas",
+          data: sortedDates.map(d => dailyMealCounts[d]),
+          backgroundColor: "#6C8CFF",
+          borderRadius: 8,
+          borderSkipped: false
+        }]
+      },
+      options: {
+        responsive: true,
+        plugins: { legend:{ display:false } },
+        scales: { y:{ beginAtZero:true, ticks:{ stepSize:1 } } }
+      }
+    });
+
+    // --- 4) BAR HORIZONTAL: % promedio por categoría ---
+    const catPctSum = {};
+    const catPctN = {};
+    rows.forEach(r => {
+      catPctSum[r.category] = (catPctSum[r.category]||0) + r.percentage;
+      catPctN[r.category] = (catPctN[r.category]||0) + 1;
+    });
+    const avgLabels = Object.keys(catPctSum).sort();
+    const avgVals = avgLabels.map(c => Math.round(catPctSum[c]/catPctN[c]));
+
+    reportCharts.avgPercent = new Chart(document.getElementById("chartAvgPercent").getContext("2d"), {
+      type: "bar",
+      data: {
+        labels: avgLabels,
+        datasets: [{
+          label: "% promedio",
+          data: avgVals,
+          backgroundColor: avgLabels.map((_,i) => CHART_COLORS[i % CHART_COLORS.length]),
+          borderRadius: 8,
+          borderSkipped: false
+        }]
+      },
+      options: {
+        indexAxis: "y",
+        responsive: true,
+        plugins: { legend:{ display:false } },
+        scales: { x:{ beginAtZero:true, max:100 } }
+      }
+    });
+
+    // --- 5) STACKED BAR: evolución diaria del % por categoría ---
+    const allCats = [...new Set(rows.map(r=>r.category))].sort();
+    const dailyCatPct = {};
+    rows.forEach(r => {
+      if(!dailyCatPct[r.date]) dailyCatPct[r.date] = {};
+      dailyCatPct[r.date][r.category] = (dailyCatPct[r.date][r.category]||0) + r.percentage;
+    });
+    const stackDates = Object.keys(dailyCatPct).sort();
+    const stackShortDates = stackDates.map(d => d.slice(5));
+
+    const stackDatasets = allCats.map((cat, ci) => ({
+      label: cat,
+      data: stackDates.map(d => dailyCatPct[d][cat] || 0),
+      backgroundColor: CHART_COLORS[ci % CHART_COLORS.length],
+      borderRadius: 4,
+      borderSkipped: false
+    }));
+
+    reportCharts.dailyStack = new Chart(document.getElementById("chartDailyStack").getContext("2d"), {
+      type: "bar",
+      data: {
+        labels: stackShortDates,
+        datasets: stackDatasets
+      },
+      options: {
+        responsive: true,
+        plugins: {
+          legend: { position:"bottom", labels:{ font:{ size:11, weight:"bold" }, padding:10 } },
+          tooltip: {
+            mode: "index",
+            callbacks: {
+              afterBody: (items) => {
+                const total = items.reduce((s,i) => s + (i.raw||0), 0);
+                return `──────\nTotal: ${total}%`;
+              }
+            }
+          }
+        },
+        scales: {
+          x: { stacked:true },
+          y: { stacked:true, beginAtZero:true, title:{ display:true, text:"% del plato" } }
+        }
+      }
+    });
+  }
+
+  function exportCSV_AE(rows, filename){
+    const headers = ["Fecha","Comida","Alimento","Categoria","Porcentaje"];
+    const lines = [headers.join(",")];
+
+    rows.forEach(r=>{
+      const values = [r.date, r.meal_type, r.food_name, r.category, String(r.percentage)]
+        .map(v => `"${String(v ?? "").replace(/"/g,'""')}"`);
+      lines.push(values.join(","));
+    });
+
+    const blob = new Blob([lines.join("\n")], {type:"text/csv;charset=utf-8;"});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  }
+
+  function exportXLSX_AE(rows, filename){
+    const clean = rows.map(r => ({
+      Fecha: r.date,
+      Comida: r.meal_type,
+      Alimento: r.food_name,
+      Categoria: r.category,
+      Porcentaje: r.percentage
+    }));
+    const ws = XLSX.utils.json_to_sheet(clean);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Reporte");
+    XLSX.writeFile(wb, filename);
+  }
+
+  function refreshReportsUI(){ /* reservado */ }
+
+  btnBuildReport.addEventListener("click", async ()=>{
+    await buildReport(r_start.value, r_end.value);
+    showAlert(reportsAlert, "ok", "Reporte generado ✅");
+  });
+
+  btnExportCSV.addEventListener("click", async ()=>{
+    if(!currentReportRows.length) await buildReport(r_start.value, r_end.value);
+    exportCSV_AE(currentReportRows, `reporte_${r_start.value}_a_${r_end.value}.csv`);
+    showAlert(reportsAlert, "ok", "CSV descargado ✅");
+  });
+
+  btnExportXLSX.addEventListener("click", async ()=>{
+    if(!currentReportRows.length) await buildReport(r_start.value, r_end.value);
+    exportXLSX_AE(currentReportRows, `reporte_${r_start.value}_a_${r_end.value}.xlsx`);
+    showAlert(reportsAlert, "ok", "Excel descargado ✅");
+  });
+
+  btnExportJSON.addEventListener("click", ()=>{
+    const data = loadLocal();
+    const blob = new Blob([JSON.stringify(data, null, 2)], {type:"application/json"});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `bienestar_backup_${todayISO()}.json`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+    showAlert(reportsAlert, "ok", "JSON exportado ✅");
+  });
+
+  importJSON.addEventListener("change", async (e)=>{
+    const file = e.target.files[0];
+    if(!file) return;
+    const text = await file.text();
+    try{
+      const parsed = JSON.parse(text);
+      if(!parsed.habits) parsed.habits = {};
+      if(!parsed.meals) parsed.meals = {};
+      if(!parsed.library) parsed.library = defaultLibrary;
+      localStorage.setItem(LS_KEY, JSON.stringify(parsed));
+      showAlert(reportsAlert, "ok", "Importado ✅");
+      await refreshHabitsUI();
+      await refreshMealsUI();
+      await buildReport(r_start.value, r_end.value);
+    }catch{
+      showAlert(reportsAlert, "bad", "JSON inválido ❌");
+    }
+    e.target.value = "";
+  });
+
+  // -----------------------------
+  // INIT
+  // -----------------------------
+  async function boot(){
+    await initSupabase();
+    // si supabase no está listo, igual se puede usar local
+    h_date.value = todayISO();
+    m_date.value = todayISO();
+    r_end.value = todayISO();
+    r_start.value = addDaysISO(todayISO(), -7);
+    await refreshHabitsUI();
+    await refreshMealsUI();
+  }
+
+  boot();
+})();
+</script>
+
+</body>
+</html>
