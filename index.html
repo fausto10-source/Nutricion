@@ -617,7 +617,7 @@
       <div class="table-wrap">
         <table>
           <thead>
-            <tr><th>Fecha</th><th>Comida</th><th>Alimento</th><th>Categoría</th><th>Cantidad</th><th>Unidad</th><th>Aclaración</th></tr>
+            <tr><th>Fecha</th><th>Comida</th><th>Alimento</th><th>Categoría</th><th>Cantidad</th><th>Unidad</th><th>Aclaración</th><th>Observaciones</th><th>Foto</th></tr>
           </thead>
           <tbody id="reportTableBody"></tbody>
         </table>
@@ -1262,7 +1262,9 @@
       (data.meals[d] || []).forEach(m => {
         (m.foods || []).forEach(f => {
           rows.push({ date: d, meal_type: m.type, food_name: f.name,
-            category: f.category, qty: f.qty || 1, unit: f.unit || 'unidad', detail: f.detail || '' });
+            category: f.category, qty: f.qty || 1, unit: f.unit || 'unidad', detail: f.detail || '',
+            photoUrl: m.photoUrl || '', note: m.note || '',
+            symptoms: (m.symptoms || []).join(', '), context: (m.context || []).join(', ') });
         });
       });
     });
@@ -1322,13 +1324,15 @@
   function renderReportTable(rows) {
     reportTableBody.innerHTML = '';
     if (!rows.length) {
-      reportTableBody.innerHTML = '<tr><td colspan="7" style="color:var(--text-dim);">Sin datos en ese rango.</td></tr>';
+      reportTableBody.innerHTML = '<tr><td colspan="9" style="color:var(--text-dim);">Sin datos en ese rango.</td></tr>';
       return;
     }
     rows.forEach(r => {
+      const photoCell = r.photoUrl ? `<a href="${esc(r.photoUrl)}" target="_blank" style="color:var(--accent-light);">📷 Ver</a>` : '';
       reportTableBody.innerHTML += `<tr>
         <td>${esc(r.date)}</td><td>${esc(r.meal_type)}</td><td>${esc(r.food_name)}</td>
         <td>${esc(r.category)}</td><td>${r.qty||1}</td><td>${esc(r.unit||'unidad')}</td><td>${esc(r.detail)}</td>
+        <td style="max-width:200px;white-space:normal;">${esc(r.note||'')}</td><td>${photoCell}</td>
       </tr>`;
     });
   }
@@ -1377,10 +1381,10 @@
   // Export
   document.getElementById('btnExportCSV').addEventListener('click', async () => {
     if (!currentReportRows.length) await buildReport(r_start.value, r_end.value);
-    const headers = ['Fecha','Comida','Alimento','Categoria','Cantidad','Unidad','Aclaracion'];
+    const headers = ['Fecha','Comida','Alimento','Categoria','Cantidad','Unidad','Aclaracion','Observaciones','Sintomas','Contexto','Foto'];
     const lines = [headers.join(',')];
     currentReportRows.forEach(r => {
-      lines.push([r.date, r.meal_type, r.food_name, r.category, r.qty||1, r.unit||'unidad', r.detail]
+      lines.push([r.date, r.meal_type, r.food_name, r.category, r.qty||1, r.unit||'unidad', r.detail, r.note||'', r.symptoms||'', r.context||'', r.photoUrl||'']
         .map(v => `"${String(v??'').replace(/"/g,'""')}"`).join(','));
     });
     downloadFile(lines.join('\n'), `reporte_${r_start.value}_${r_end.value}.csv`, 'text/csv');
@@ -1391,7 +1395,8 @@
     if (!currentReportRows.length) await buildReport(r_start.value, r_end.value);
     const clean = currentReportRows.map(r => ({
       Fecha:r.date, Comida:r.meal_type, Alimento:r.food_name,
-      Categoria:r.category, Cantidad:r.qty||1, Unidad:r.unit||'unidad', Aclaracion:r.detail||''
+      Categoria:r.category, Cantidad:r.qty||1, Unidad:r.unit||'unidad', Aclaracion:r.detail||'',
+      Observaciones:r.note||'', Sintomas:r.symptoms||'', Contexto:r.context||'', Foto:r.photoUrl||''
     }));
     const ws = XLSX.utils.json_to_sheet(clean);
     const wb = XLSX.utils.book_new();
@@ -1448,5 +1453,3 @@
 </script>
 </body>
 </html>
-
-
